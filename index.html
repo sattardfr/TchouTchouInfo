@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>TchouTchou // TACTICAL GRID</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg: #060d18;
+            --panel: #080f1e;
+            --card: #0a1525;
+            --border: rgba(0, 220, 200, 0.22);
+            --c1: #00dcc8;
+            /* teal accent */
+            --c2: #00ff99;
+            /* green */
+            --c3: #ff4444;
+            /* red alert */
+            --cy: #ffe566;
+            /* yellow */
+            --muted: #5a8f87;
+            --text: #e8fffc;
+            --val: #ffffff;
+            --font: 'Inter', sans-serif;
+            --mono: 'Share Tech Mono', monospace;
+            --title: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden
+        }
+
+        /* subtle grid bg */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(0, 220, 200, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 220, 200, 0.03) 1px, transparent 1px);
+            background-size: 52px 52px
+        }
+
+        /* very light scanline */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.06) 3px, rgba(0, 0, 0, 0.06) 4px)
+        }
+
+        /* ─── HEADER ────────────────────────────────────────────── */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: rgba(4, 8, 18, 0.98);
+            border-bottom: 1px solid var(--border);
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, var(--c1) 50%, transparent 100%);
+            opacity: .5;
+            animation: hline 6s ease-in-out infinite
+        }
+
+        @keyframes hline {
+
+            0%,
+            100% {
+                opacity: .2
+            }
+
+            50% {
+                opacity: .7
+            }
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        .logo-box {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: rgba(0, 220, 200, 0.1);
+            border: 1.5px solid var(--c1);
+            clip-path: polygon(0 8px, 8px 0, 100% 0, 100% calc(100%-8px), calc(100%-8px) 100%, 0 100%);
+            box-shadow: 0 0 18px rgba(0, 220, 200, 0.2) inset
+        }
+
+        .logo-title {
+            font-family: var(--title);
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: var(--c1);
+            letter-spacing: 3px;
+            text-shadow: 0 0 18px var(--c1)
+        }
+
+        .logo-sub {
+            font-family: var(--mono);
+            font-size: .58rem;
+            color: var(--muted);
+            letter-spacing: 3px;
+            margin-top: 2px
+        }
+
+        .hdr-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px
+        }
+
+        .mission-lbl {
+            font-family: var(--mono);
+            font-size: .58rem;
+            color: var(--muted);
+            letter-spacing: 3px
+        }
+
+        #hdr-time {
+            font-family: var(--title);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--c1);
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(0, 220, 200, .6)
+        }
+
+        .hdr-right {
+            display: flex;
+            align-items: center;
+            gap: 14px
+        }
+
+        #hdr-update {
+            font-size: .68rem;
+            color: var(--muted);
+            letter-spacing: 1px
+        }
+
+        .live-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid var(--border);
+            padding: 5px 14px;
+            clip-path: polygon(8px 0, 100% 0, calc(100%-8px) 100%, 0 100%);
+            background: rgba(0, 220, 200, 0.06)
+        }
+
+        .ldot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--c2);
+            box-shadow: 0 0 10px var(--c2);
+            animation: lp 1.2s infinite
+        }
+
+        @keyframes lp {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        .ltxt {
+            font-size: .72rem;
+            letter-spacing: 1px;
+            color: var(--c2);
+            font-weight: 600
+        }
+
+        .cring svg {
+            transform: rotate(-90deg)
+        }
+
+        #refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--c1);
+            padding: 7px 16px;
+            font-family: var(--font);
+            font-size: .78rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 1px;
+            clip-path: polygon(6px 0, 100% 0, calc(100%-6px) 100%, 0 100%);
+            transition: .2s
+        }
+
+        #refresh-btn:hover {
+            background: rgba(0, 220, 200, 0.1);
+            border-color: var(--c1);
+            box-shadow: 0 0 12px rgba(0, 220, 200, 0.2)
+        }
+
+        /* ─── LAYOUT ────────────────────────────────────────────── */
+        .main {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 340px 1fr 300px;
+            grid-template-rows: auto 1fr;
+            gap: 14px;
+            padding: 16px 20px;
+            min-height: calc(100vh - 66px)
+        }
+
+        /* ─── METRIC BAR ─────────────────────────────────────────── */
+        .mbar {
+            grid-column: 1/-1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px
+        }
+
+        .mc {
+            position: relative;
+            padding: 18px 20px 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: box-shadow .3s;
+        }
+
+        .mc:hover {
+            box-shadow: 0 0 30px rgba(0, 220, 200, 0.1)
+        }
+
+        /* corner brackets */
+        .mc::before,
+        .mc::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-color: var(--c1);
+            border-style: solid;
+            opacity: .7
+        }
+
+        .mc::before {
+            top: 5px;
+            left: 5px;
+            border-width: 1.5px 0 0 1.5px
+        }
+
+        .mc::after {
+            bottom: 5px;
+            right: 5px;
+            border-width: 0 1.5px 1.5px 0
+        }
+
+        .mc-stripe {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px
+        }
+
+        .mc.spd .mc-stripe {
+            background: linear-gradient(180deg, var(--c3), transparent)
+        }
+
+        .mc.pos .mc-stripe {
+            background: linear-gradient(180deg, var(--c1), transparent)
+        }
+
+        .mc.alt .mc-stripe {
+            background: linear-gradient(180deg, var(--c2), transparent)
+        }
+
+        .mc.hdg .mc-stripe {
+            background: linear-gradient(180deg, var(--cy), transparent)
+        }
+
+        .mc.bw .mc-stripe {
+            background: linear-gradient(180deg, #b47fff, transparent)
+        }
+
+        .mc-lbl {
+            font-size: .6rem;
+            letter-spacing: 3px;
+            color: var(--muted);
+            margin-bottom: 8px
+        }
+
+        /* BIG readable value */
+        .mc-val {
+            font-family: var(--title);
+            font-weight: 900;
+            line-height: 1;
+            color: var(--val)
+        }
+
+        .mc.spd .mc-val {
+            font-size: 3rem;
+            color: var(--c3);
+            text-shadow: 0 0 30px rgba(255, 68, 68, .5)
+        }
+
+        .mc.pos .mc-val {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            letter-spacing: 0;
+            color: var(--c1);
+            text-shadow: 0 0 20px rgba(0, 220, 200, .4)
+        }
+
+        .mc.alt .mc-val {
+            font-size: 3rem;
+            color: var(--c2);
+            text-shadow: 0 0 30px rgba(0, 255, 153, .4)
+        }
+
+        .mc.hdg .mc-val {
+            font-size: 3rem;
+            color: var(--cy);
+            text-shadow: 0 0 30px rgba(255, 229, 102, .4)
+        }
+
+        .mc.bw .mc-val {
+            font-size: 3rem;
+            color: #b47fff;
+            text-shadow: 0 0 30px rgba(180, 127, 255, .4)
+        }
+
+        .mc-unit {
+            font-size: .68rem;
+            color: var(--muted);
+            margin-top: 6px;
+            letter-spacing: 1px
+        }
+
+        /* ─── PANEL BASE ─────────────────────────────────────────── */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden
+        }
+
+        /* corner brackets on panels */
+        .panel::before,
+        .panel::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-color: rgba(0, 220, 200, 0.5);
+            border-style: solid;
+            z-index: 2;
+            pointer-events: none
+        }
+
+        .panel::before {
+            top: 0;
+            left: 0;
+            border-width: 2px 0 0 2px
+        }
+
+        .panel::after {
+            bottom: 0;
+            right: 0;
+            border-width: 0 2px 2px 0
+        }
+
+        .ph {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 220, 200, 0.04);
+            flex-shrink: 0
+        }
+
+        .ph-icon {
+            font-size: 1rem
+        }
+
+        .ph-title {
+            font-family: var(--mono);
+            font-size: .65rem;
+            letter-spacing: 3px;
+            color: var(--c1);
+            font-weight: 700
+        }
+
+        .ph-badge {
+            margin-left: auto;
+            font-family: var(--mono);
+            font-size: .62rem;
+            border: 1px solid rgba(0, 220, 200, .4);
+            padding: 3px 10px;
+            color: var(--c1);
+            letter-spacing: 2px;
+            background: rgba(0, 220, 200, 0.08)
+        }
+
+        /* ─── STOPS ──────────────────────────────────────────────── */
+        .stops-list {
+            overflow-y: auto;
+            flex: 1;
+            padding: 6px 0
+        }
+
+        .stops-list::-webkit-scrollbar {
+            width: 3px
+        }
+
+        .stops-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 1px
+        }
+
+        .stop-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 16px;
+            border-bottom: 1px solid rgba(0, 220, 200, 0.05);
+            transition: background .15s
+        }
+
+        .stop-row:hover {
+            background: rgba(0, 220, 200, 0.04)
+        }
+
+        .sline {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 3px
+        }
+
+        .sdot {
+            width: 11px;
+            height: 11px;
+            transform: rotate(45deg);
+            border: 1.5px solid var(--muted);
+            background: transparent;
+            flex-shrink: 0;
+            transition: all .3s
+        }
+
+        .sdot.done {
+            background: var(--c2);
+            border-color: var(--c2);
+            box-shadow: 0 0 8px var(--c2)
+        }
+
+        .sdot.active {
+            background: var(--c3);
+            border-color: var(--c3);
+            box-shadow: 0 0 16px var(--c3);
+            animation: ap .7s infinite alternate
+        }
+
+        .sdot.next {
+            border-color: var(--c1);
+            box-shadow: 0 0 8px rgba(0, 220, 200, .4)
+        }
+
+        @keyframes ap {
+            from {
+                box-shadow: 0 0 8px var(--c3)
+            }
+
+            to {
+                box-shadow: 0 0 24px var(--c3)
+            }
+        }
+
+        .sbar {
+            width: 1.5px;
+            flex: 1;
+            min-height: 26px;
+            background: rgba(0, 220, 200, 0.1);
+            margin: 3px 0
+        }
+
+        .sbar.done {
+            background: rgba(0, 255, 153, .3)
+        }
+
+        .sinfo {
+            flex: 1
+        }
+
+        .sname {
+            font-size: .88rem;
+            font-weight: 500;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+            color: var(--muted)
+        }
+
+        .sname.done {
+            color: var(--muted)
+        }
+
+        .sname.active {
+            color: var(--c3);
+            font-size: .92rem;
+            font-weight: 700
+        }
+
+        .sname.next {
+            color: var(--val);
+            font-size: .92rem;
+            font-weight: 600
+        }
+
+        .sname.future {
+            color: var(--text)
+        }
+
+        .smeta {
+            font-size: .74rem;
+            color: var(--muted);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .smeta .stime {
+            color: var(--text);
+            font-size: .78rem;
+            font-weight: 500
+        }
+
+        .smeta .sok {
+            color: var(--c2)
+        }
+
+        .smeta .sdel {
+            color: var(--c3)
+        }
+
+        .smeta .sarrêt {
+            color: var(--cy)
+        }
+
+        .spbar {
+            height: 3px;
+            background: rgba(255, 68, 68, 0.1);
+            margin-top: 6px;
+            overflow: hidden;
+            border-radius: 1px
+        }
+
+        .spfill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--c3), #ff8800);
+            transition: width .5s
+        }
+
+        /* ─── MAP ────────────────────────────────────────────────── */
+        .map-panel {
+            display: flex;
+            flex-direction: column
+        }
+
+        #map {
+            flex: 1;
+            min-height: 380px
+        }
+
+
+
+        /* ─── RIGHT COL ──────────────────────────────────────────── */
+        .rcol {
+            display: flex;
+            flex-direction: column;
+            gap: 14px
+        }
+
+        .crow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 18px;
+            border-bottom: 1px solid rgba(0, 220, 200, .06)
+        }
+
+        .crow:last-child {
+            border: none
+        }
+
+        .ckey {
+            font-size: .72rem;
+            color: var(--muted);
+            letter-spacing: 1px
+        }
+
+        .cval {
+            font-size: 1rem;
+            font-weight: 700;
+            text-align: right;
+            color: var(--val);
+            letter-spacing: .5px
+        }
+
+        .cval.ok {
+            color: var(--c2);
+            text-shadow: 0 0 10px rgba(0, 255, 153, .4)
+        }
+
+        .cval.err {
+            color: var(--c3)
+        }
+
+        .cval.hi {
+            color: var(--c1)
+        }
+
+        .cval.y {
+            color: var(--cy)
+        }
+
+        .cval.pu {
+            color: #b47fff
+        }
+
+        .gbar {
+            height: 5px;
+            margin: 2px 18px 4px;
+            background: rgba(0, 220, 200, .08);
+            overflow: hidden
+        }
+
+        .gfill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--c2), var(--c1));
+            transition: width .5s
+        }
+
+        .glabels {
+            display: flex;
+            justify-content: space-between;
+            font-size: .68rem;
+            color: var(--muted);
+            padding: 0 18px 10px
+        }
+
+        /* compass */
+        .compass-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 14px
+        }
+
+        .compass {
+            position: relative;
+            width: 100px;
+            height: 100px
+        }
+
+        .compass svg {
+            position: absolute;
+            inset: 0
+        }
+
+        #compass-needle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 2px;
+            height: 42px;
+            transform-origin: bottom center;
+            transform: translateX(-50%) translateY(-100%) rotate(0deg);
+            transition: transform .5s ease
+        }
+
+        #compass-needle::before {
+            content: '';
+            display: block;
+            width: 2px;
+            height: 22px;
+            background: var(--c3);
+            border-radius: 1px 1px 0 0;
+            box-shadow: 0 0 10px var(--c3)
+        }
+
+        #compass-needle::after {
+            content: '';
+            display: block;
+            width: 2px;
+            height: 20px;
+            background: rgba(90, 143, 135, .5);
+            border-radius: 0 0 1px 1px
+        }
+
+        #compass-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 8px;
+            height: 8px;
+            background: var(--c1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--c1)
+        }
+
+        /* services */
+        .svc-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 12px 16px
+        }
+
+        .svc {
+            font-size: .72rem;
+            font-weight: 600;
+            border: 1px solid rgba(0, 220, 200, .22);
+            color: var(--c1);
+            padding: 5px 12px;
+            letter-spacing: 1px;
+            clip-path: polygon(5px 0, 100% 0, calc(100%-5px) 100%, 0 100%);
+            background: rgba(0, 220, 200, 0.06)
+        }
+
+        /* mini compass in top bar */
+        .mini-compass {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0
+        }
+
+        .mini-compass svg {
+            position: absolute;
+            inset: 0
+        }
+
+        .mini-needle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 2px;
+            height: 26px;
+            transform-origin: bottom center;
+            transform: translateX(-50%) translateY(-100%) rotate(0deg);
+            transition: transform .5s ease
+        }
+
+        .mini-needle::before {
+            content: '';
+            display: block;
+            width: 2px;
+            height: 13px;
+            background: var(--c3);
+            border-radius: 1px 1px 0 0;
+            box-shadow: 0 0 8px var(--c3)
+        }
+
+        .mini-needle::after {
+            content: '';
+            display: block;
+            width: 2px;
+            height: 13px;
+            background: rgba(90, 143, 135, .5)
+        }
+
+        .mini-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            background: var(--c1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px var(--c1)
+        }
+
+        .mc.eta .mc-stripe {
+            background: linear-gradient(180deg, var(--cy), transparent)
+        }
+
+        .mc.eta .mc-val {
+            color: var(--cy);
+            font-size: 2.4rem;
+            text-shadow: 0 0 24px rgba(255, 229, 102, .5)
+        }
+
+        .mc.dest .mc-stripe {
+            background: linear-gradient(180deg, var(--c1), transparent)
+        }
+
+        .mc.dest .mc-val {
+            color: var(--c1);
+            text-shadow: 0 0 20px rgba(0, 220, 200, .4)
+        }
+
+        .dest-val {
+            font-family: var(--font);
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.3;
+            letter-spacing: 0;
+            padding-left: 8px;
+            margin-top: 4px
+        }
+
+        .mc.sig .mc-stripe {
+            background: linear-gradient(180deg, var(--c2), transparent)
+        }
+
+        .hdg-val {
+            font-family: var(--title);
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--cy);
+            text-shadow: 0 0 20px rgba(255, 229, 102, .4)
+        }
+
+        /* ─── OFFLINE OVERLAY ─────────────────────────────────────── */
+        #offline-overlay {
+            display: flex;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(4, 8, 18, 0.95);
+            backdrop-filter: blur(8px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        #offline-overlay.hidden {
+            display: none
+        }
+
+        .offline-icon {
+            font-size: 4rem;
+            opacity: .7
+        }
+
+        .offline-title {
+            font-family: var(--title);
+            font-size: 1.4rem;
+            color: var(--c1);
+            letter-spacing: 3px;
+            text-align: center;
+            text-shadow: 0 0 30px var(--c1)
+        }
+
+        .offline-msg {
+            font-size: 1rem;
+            color: var(--text);
+            text-align: center;
+            max-width: 480px;
+            line-height: 1.7;
+            opacity: .85
+        }
+
+        .offline-ssid {
+            font-family: var(--mono);
+            font-size: .95rem;
+            color: var(--cy);
+            border: 1px solid rgba(255, 229, 102, .3);
+            padding: 8px 24px;
+            background: rgba(255, 229, 102, .05);
+            clip-path: polygon(8px 0, 100% 0, calc(100%-8px) 100%, 0 100%)
+        }
+
+        .offline-blink {
+            animation: livePulse 1.5s infinite;
+            font-size: .75rem;
+            color: var(--muted);
+            letter-spacing: 2px;
+            margin-top: 8px
+        }
+
+        /* demo button */
+        .demo-btn {
+            margin-top: 8px;
+            background: transparent;
+            border: 1.5px solid var(--c1);
+            color: var(--c1);
+            font-family: var(--mono);
+            font-size: .85rem;
+            letter-spacing: 2px;
+            padding: 12px 36px;
+            cursor: pointer;
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+            transition: background .2s, box-shadow .2s;
+        }
+
+        .demo-btn:hover {
+            background: rgba(0, 220, 200, .12);
+            box-shadow: 0 0 24px rgba(0, 220, 200, .3);
+        }
+
+        .demo-badge {
+            position: fixed;
+            top: 72px;
+            right: 16px;
+            z-index: 500;
+            display: none;
+            background: rgba(255, 229, 102, .12);
+            border: 1px solid var(--cy);
+            color: var(--cy);
+            font-family: var(--mono);
+            font-size: .62rem;
+            letter-spacing: 2px;
+            padding: 4px 12px;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+        }
+
+        @keyframes glitch {
+
+            0%,
+            95%,
+            100% {
+                text-shadow: 0 0 18px var(--c1)
+            }
+
+            96% {
+                text-shadow: -2px 0 var(--c3), 2px 0 var(--c2)
+            }
+
+            97% {
+                text-shadow: 2px 0 var(--c3), -1px 0 var(--c2)
+            }
+        }
+
+        .logo-title {
+            animation: glitch 5s infinite
+        }
+
+        /* Leaflet tooltip */
+        .leaflet-tooltip.ttip {
+            background: rgba(4, 10, 22, .97) !important;
+            border: 1px solid rgba(0, 220, 200, .3) !important;
+            color: var(--text) !important;
+            font-family: var(--font) !important;
+            font-size: .72rem !important;
+            border-radius: 0 !important;
+            box-shadow: 0 0 16px rgba(0, 220, 200, .15) !important;
+            padding: 5px 12px !important;
+            letter-spacing: .5px
+        }
+
+        .leaflet-tooltip-top.ttip::before {
+            border-top-color: rgba(0, 220, 200, .3) !important
+        }
+
+        .leaflet-control-zoom a {
+            background: rgba(4, 10, 22, .95) !important;
+            border-color: rgba(0, 220, 200, .3) !important;
+            color: var(--c1) !important
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(0, 220, 200, .08) !important
+        }
+
+        @media(max-width:1150px) {
+            .main {
+                grid-template-columns: 300px 1fr
+            }
+
+            .mbar {
+                grid-template-columns: repeat(3, 1fr)
+            }
+
+            .map-panel,
+            .rcol {
+                grid-column: 1/-1
+            }
+
+            .rcol {
+                flex-direction: row;
+                flex-wrap: wrap
+            }
+
+            .rcol>.panel {
+                flex: 1;
+                min-width: 260px
+            }
+        }
+
+        @media(max-width:700px) {
+            header {
+                padding: 8px 12px;
+                gap: 6px;
+            }
+
+            .logo-title {
+                font-size: .85rem;
+            }
+
+            .logo-sub {
+                display: none;
+            }
+
+            .hdr-center {
+                display: none;
+            }
+
+            #hdr-update {
+                display: none;
+            }
+
+            .main {
+                grid-template-columns: 1fr;
+                padding: 8px;
+                gap: 10px;
+            }
+
+            .mbar {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .mc {
+                padding: 12px 14px 10px;
+            }
+
+            .mc-val {
+                font-size: 2rem !important;
+            }
+
+            .mc.spd .mc-val,
+            .mc.alt .mc-val,
+            .mc.hdg .mc-val,
+            .mc.eta .mc-val,
+            .mc.bw .mc-val {
+                font-size: 2rem !important;
+            }
+
+            .dest-val {
+                font-size: .88rem;
+            }
+
+            .hdg-val {
+                font-size: 1.4rem !important;
+            }
+
+            .mini-compass {
+                width: 44px;
+                height: 44px;
+            }
+
+            .mini-compass svg {
+                width: 44px;
+                height: 44px;
+            }
+
+            .mini-needle {
+                height: 19px;
+            }
+
+            .mini-needle::before,
+            .mini-needle::after {
+                height: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══ HEADER ════════════════════════════════════════════════ -->
+    <header>
+        <div class="logo-wrap">
+            <div class="logo-box">�</div>
+            <div>
+                <div class="logo-title"><span
+                        style="background:linear-gradient(90deg,#00dcc8,#00ff99,#ffe566);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">TCHOU</span><span
+                        style="opacity:.5;-webkit-text-fill-color:#00dcc8"> // </span><span
+                        style="background:linear-gradient(90deg,#ffe566,#00ff99,#00dcc8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">TCHOU</span>
+                </div>
+                <div class="logo-sub">LE GPS DES FERROVIPHILES DEPUIS 2025</div>
+            </div>
+        </div>
+        <div class="hdr-center">
+            <div class="mission-lbl">MISSION // RAIL-7522 // SECTOR-NORD</div>
+            <div id="hdr-time">--:--:--</div>
+        </div>
+        <div class="hdr-right">
+            <div id="hdr-update">LAST SYNC: ---</div>
+            <div class="live-pill">
+                <div class="ldot"></div><span class="ltxt">LIVE</span>
+            </div>
+            <svg class="cring" width="32" height="32" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(0,220,200,.1)" stroke-width="2.5" />
+                <circle id="rring" cx="16" cy="16" r="13" fill="none" stroke="var(--c1)" stroke-width="2.5"
+                    stroke-linecap="round" stroke-dasharray="81.7" stroke-dashoffset="81.7" />
+            </svg>
+            <button id="refresh-btn" onclick="fetchAll()">[ ↺ SYNC ]</button>
+        </div>
+    </header>
+
+    <!-- OFFLINE OVERLAY -->
+    <div id="offline-overlay">
+        <div class="offline-icon">📡</div>
+        <div class="offline-title">SIGNAL NON DISPONIBLE</div>
+        <div class="offline-msg">Ce tableau de bord fonctionne uniquement à bord des trains équipés du WiFi
+            SNCF.<br>Connectez-vous au réseau :</div>
+        <div class="offline-ssid">📶 &nbsp; SNCF WiFi</div>
+        <div class="offline-blink">// EN ATTENTE DE CONNEXION //</div>
+        <button class="demo-btn" onclick="loadDemo()">▶ MODE DÉMO</button>
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:1px">Données d'exemple simulées</div>
+    </div>
+
+    <div class="demo-badge" id="demo-badge">⚠ MODE DÉMO — données simulées</div>
+
+    <!-- ═══ MAIN ═══════════════════════════════════════════════════ -->
+    <div class="main">
+
+        <!-- METRICS TOP BAR -->
+        <div class="mbar">
+            <!-- VITESSE -->
+            <div class="mc spd">
+                <div class="mc-stripe"></div>
+                <div class="mc-lbl">// VITESSE //</div>
+                <div class="mc-val" id="m-speed">---</div>
+                <div class="mc-unit">KM/H</div>
+            </div>
+            <!-- ETA -->
+            <div class="mc eta">
+                <div class="mc-stripe"></div>
+                <div class="mc-lbl">// ARRIVÉE DANS //</div>
+                <div class="mc-val" id="m-eta">---</div>
+                <div class="mc-unit" id="m-dest-small">---</div>
+            </div>
+            <!-- DESTINATION -->
+            <div class="mc dest">
+                <div class="mc-stripe"></div>
+                <div class="mc-lbl">// DESTINATION //</div>
+                <div class="mc-val dest-val" id="m-dest">---</div>
+            </div>
+            <!-- SIGNAL -->
+            <div class="mc sig">
+                <div class="mc-stripe"></div>
+                <div class="mc-lbl">// SIGNAL WIFI //</div>
+                <div id="m-sig-bars" style="display:flex;gap:5px;align-items:flex-end;height:44px;padding:4px 0 0 8px">
+                </div>
+                <div class="mc-unit" id="m-devices">---</div>
+            </div>
+            <!-- BOUSSOLE -->
+            <div class="mc hdg">
+                <div class="mc-stripe"></div>
+                <div class="mc-lbl">// CAP //</div>
+                <div style="display:flex;align-items:center;gap:12px;padding-left:8px">
+                    <div class="mini-compass">
+                        <svg viewBox="0 0 60 60" width="60" height="60">
+                            <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(0,220,200,.15)" stroke-width="1" />
+                            <circle cx="30" cy="30" r="20" fill="none" stroke="rgba(0,220,200,.07)" stroke-width="1"
+                                stroke-dasharray="3 3" />
+                            <text x="30" y="10" text-anchor="middle" font-size="7" fill="var(--c1)"
+                                font-family="Orbitron" font-weight="700">N</text>
+                            <text x="30" y="54" text-anchor="middle" font-size="6" fill="var(--muted)"
+                                font-family="Orbitron">S</text>
+                            <text x="54" y="33" text-anchor="middle" font-size="6" fill="var(--muted)"
+                                font-family="Orbitron">E</text>
+                            <text x="6" y="33" text-anchor="middle" font-size="6" fill="var(--muted)"
+                                font-family="Orbitron">O</text>
+                        </svg>
+                        <div class="mini-needle" id="mini-needle"></div>
+                        <div class="mini-center"></div>
+                    </div>
+                    <div>
+                        <div class="mc-val hdg-val" id="m-head">---</div>
+                        <div class="mc-unit" style="margin-top:4px">DEG · <span id="m-dir">--</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STOPS -->
+        <div class="panel">
+            <div class="ph"><span class="ph-icon">⬡</span><span class="ph-title">ITINÉRAIRE</span><span class="ph-badge"
+                    id="train-num">TER ---</span></div>
+            <div class="stops-list" id="stops-list"></div>
+        </div>
+
+        <!-- MAP -->
+        <div class="panel map-panel" style="position:relative">
+            <div class="ph"><span class="ph-icon">◈</span><span class="ph-title">CARTE TACTIQUE</span><span
+                    class="ph-badge" id="map-coord-hdr">---N ---E</span></div>
+            <div id="map"></div>
+
+        </div>
+
+        <!-- RIGHT COL -->
+        <div class="rcol">
+            <div class="panel">
+                <div class="ph"><span class="ph-icon">◉</span><span class="ph-title">CONNEXION WIFI</span></div>
+                <div class="crow"><span class="ckey">STATUS</span><span class="cval ok" id="c-stat">---</span></div>
+                <div class="crow"><span class="ckey">CODE HTTP</span><span class="cval hi" id="c-code">---</span></div>
+                <div class="crow"><span class="ckey">DÉBIT ACCORDÉ</span><span class="cval pu" id="c-bw">---</span>
+                </div>
+                <div class="crow"><span class="ckey">DATA RESTANTE</span><span class="cval ok" id="c-rem">---</span>
+                </div>
+                <div class="crow"><span class="ckey">CONSOMMÉE</span><span class="cval" id="c-cons">---</span></div>
+                <div class="crow"><span class="ckey">RESET DANS</span><span class="cval y" id="c-rst">---</span></div>
+                <div class="crow"><span class="ckey">APPAREILS CONNECTÉS</span><span class="cval hi"
+                        id="c-devices">---</span></div>
+                <div class="crow" style="flex-direction:column;align-items:flex-start;gap:6px">
+                    <span class="ckey">QUALITÉ SIGNAL</span>
+                    <div id="c-quality-bars" style="display:flex;gap:4px;align-items:flex-end;height:20px"></div>
+                </div>
+                <div class="gbar">
+                    <div class="gfill" id="c-gauge" style="width:0%"></div>
+                </div>
+                <div class="glabels"><span>0</span><span id="c-glbl">---</span></div>
+            </div>
+
+            <div class="panel">
+                <div class="ph"><span class="ph-icon">▸</span><span class="ph-title">TRAIN DATA</span></div>
+                <div class="crow"><span class="ckey">N° TRAIN</span><span class="cval hi" id="t-num">---</span></div>
+                <div class="crow"><span class="ckey">ID TRAJET</span><span class="cval" id="t-id">---</span></div>
+                <div class="crow"><span class="ckey">ORIGINE</span><span class="cval ok" id="t-dep"
+                        style="font-size:.72rem;max-width:160px;text-align:right">---</span></div>
+                <div class="crow"><span class="ckey">DESTINATION</span><span class="cval" id="t-arr"
+                        style="font-size:.72rem;max-width:160px;text-align:right">---</span></div>
+                <div class="crow"><span class="ckey">ETA</span><span class="cval y" id="t-eta">---</span></div>
+                <div class="compass-wrap">
+                    <div class="compass">
+                        <svg viewBox="0 0 100 100" width="100" height="100">
+                            <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(0,220,200,.12)" stroke-width="1" />
+                            <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(0,220,200,.04)" stroke-width="16" />
+                            <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(0,220,200,.06)" stroke-width="1"
+                                stroke-dasharray="4 4" />
+                            <line x1="50" y1="5" x2="50" y2="16" stroke="var(--c1)" stroke-width="2" />
+                            <line x1="50" y1="84" x2="50" y2="95" stroke="var(--muted)" stroke-width="1" />
+                            <line x1="5" y1="50" x2="16" y2="50" stroke="var(--muted)" stroke-width="1" />
+                            <line x1="84" y1="50" x2="95" y2="50" stroke="var(--muted)" stroke-width="1" />
+                            <text x="50" y="22" text-anchor="middle" font-size="9" fill="var(--c1)"
+                                font-family="Orbitron" font-weight="700">N</text>
+                            <text x="50" y="82" text-anchor="middle" font-size="8" fill="var(--muted)"
+                                font-family="Orbitron">S</text>
+                            <text x="80" y="54" text-anchor="middle" font-size="8" fill="var(--muted)"
+                                font-family="Orbitron">E</text>
+                            <text x="20" y="54" text-anchor="middle" font-size="8" fill="var(--muted)"
+                                font-family="Orbitron">O</text>
+                        </svg>
+                        <div id="compass-needle"></div>
+                        <div id="compass-center"></div>
+                    </div>
+                </div>
+                <div class="ph" style="border-top:1px solid var(--border)"><span class="ph-icon">✦</span><span
+                        class="ph-title">SERVICES À BORD</span></div>
+                <div class="svc-grid" id="svc-grid"></div>
+                <div class="ph" style="border-top:1px solid var(--border)"><span class="ph-icon">🍽</span><span
+                        class="ph-title">BAR / RESTAURATION</span></div>
+                <div class="crow"><span class="ckey">FRÉQUENTATION BAR</span><span class="cval"
+                        id="bar-attendance">---</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const REFRESH = 10000;
+        // file:// → appel direct à wifi.sncf (Origin: null, accepté par le portail)
+        // http://  → proxy local server.js qui contourne CORS (node server.js)
+        const _BASE = window.location.protocol === 'file:'
+            ? 'https://wifi.sncf/router/api/'
+            : '/api/';
+        const APIS = {
+            gps: _BASE + 'train/gps',
+            det: _BASE + 'train/details',
+            con: _BASE + 'connection/status',
+            stats: _BASE + 'connection/statistics',
+            bar: _BASE + 'bar/attendance',
+        };
+        const SVC = { OCEHP: '🎧 AUDIO', OCEPI: '⚡ 220V', OCECM: '📱 TABLETTE', OCENY: '🆕 NEW GEN', OCEWF: '📶 WIFI', OCEPP: '🚗 PARKING' };
+
+        /* CLOCK */
+        function tick() { document.getElementById('hdr-time').textContent = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }
+        tick(); setInterval(tick, 1000);
+
+        /* MAP */
+        const map = L.map('map', { zoomControl: true, attributionControl: false });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+        map.setView([47.5, 2.5], 6);
+
+        const trainIcon = L.divIcon({
+            className: '', iconSize: [64, 72], iconAnchor: [32, 60], html: `
+<style>
+@keyframes r1{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.9);opacity:0}}
+@keyframes r2{0%{transform:scale(1);opacity:.4}100%{transform:scale(1.5);opacity:0}}
+@keyframes puff1{0%{transform:translateY(0) scale(1);opacity:.8}100%{transform:translateY(-22px) scale(1.8);opacity:0}}
+@keyframes puff2{0%{transform:translateY(0) scale(.8);opacity:.7}100%{transform:translateY(-28px) scale(2);opacity:0}}
+@keyframes puff3{0%{transform:translateY(0) scale(.6);opacity:.6}100%{transform:translateY(-18px) scale(1.5);opacity:0}}
+</style>
+<div style="position:relative;width:64px;height:72px">
+  <!-- smoke puffs above chimney -->
+  <div style="position:absolute;left:14px;top:0;width:10px;height:10px;border-radius:50%;background:rgba(180,220,210,0.85);animation:puff1 1.4s ease-out infinite"></div>
+  <div style="position:absolute;left:19px;top:4px;width:7px;height:7px;border-radius:50%;background:rgba(180,220,210,0.7);animation:puff2 1.4s ease-out .45s infinite"></div>
+  <div style="position:absolute;left:10px;top:5px;width:6px;height:6px;border-radius:50%;background:rgba(180,220,210,0.6);animation:puff3 1.4s ease-out .9s infinite"></div>
+  <!-- sonar rings -->
+  <div style="position:absolute;left:50%;top:54px;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,68,68,0.6);animation:r1 1.2s infinite"></div>
+  <div style="position:absolute;left:50%;top:54px;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,68,68,0.2);animation:r2 1.8s infinite"></div>
+  <!-- locomotive SVG -->
+  <svg width="64" height="52" viewBox="0 0 64 52" style="position:absolute;bottom:0;left:0" xmlns="http://www.w3.org/2000/svg">
+    <!-- chimney -->
+    <rect x="14" y="10" width="7" height="14" rx="1" fill="#1a3a36"/>
+    <rect x="12" y="8" width="11" height="4" rx="1" fill="#00dcc8"/>
+    <!-- boiler -->
+    <rect x="10" y="22" width="38" height="16" rx="4" fill="#0d2030"/>
+    <rect x="10" y="22" width="38" height="4" rx="2" fill="#1a4a44" opacity=".6"/>
+    <!-- cab -->
+    <rect x="42" y="16" width="14" height="22" rx="2" fill="#0d2030"/>
+    <rect x="44" y="18" width="5" height="6" rx="1" fill="#00dcc8" opacity=".3"/>
+    <!-- highlight stripe -->
+    <rect x="10" y="25" width="38" height="2" rx="1" fill="#00dcc8" opacity=".25"/>
+    <!-- frame -->
+    <rect x="6" y="36" width="52" height="6" rx="2" fill="#091822"/>
+    <!-- wheels -->
+    <circle cx="16" cy="44" r="6" fill="#091822" stroke="#00dcc8" stroke-width="1.5"/>
+    <circle cx="16" cy="44" r="2.5" fill="#00dcc8" opacity=".5"/>
+    <circle cx="30" cy="44" r="7" fill="#091822" stroke="#ff4444" stroke-width="2"/>
+    <circle cx="30" cy="44" r="2.8" fill="#ff4444" opacity=".6"/>
+    <circle cx="44" cy="44" r="6" fill="#091822" stroke="#00dcc8" stroke-width="1.5"/>
+    <circle cx="44" cy="44" r="2.5" fill="#00dcc8" opacity=".5"/>
+    <!-- connecting rod -->
+    <line x1="16" y1="44" x2="44" y2="44" stroke="#ff4444" stroke-width="1.5" opacity=".4"/>
+    <!-- headlight -->
+    <circle cx="10" cy="28" r="3" fill="#ffe566" opacity=".9"/>
+    <circle cx="10" cy="28" r="5" fill="#ffe566" opacity=".15"/>
+  </svg>
+</div>`});
+        const stopDoneI = L.divIcon({ className: '', iconSize: [8, 8], iconAnchor: [4, 4], html: `<div style="width:8px;height:8px;background:rgba(0,255,153,.5);transform:rotate(45deg);border:1px solid #00ff99"></div>` });
+        const stopNextI = L.divIcon({ className: '', iconSize: [14, 14], iconAnchor: [7, 7], html: `<div style="width:14px;height:14px;background:rgba(0,220,200,.85);transform:rotate(45deg);border:2px solid #00dcc8;box-shadow:0 0 12px #00dcc8"></div>` });
+        const stopFutI = L.divIcon({ className: '', iconSize: [7, 7], iconAnchor: [3.5, 3.5], html: `<div style="width:7px;height:7px;transform:rotate(45deg);border:1px solid rgba(90,143,135,.6)"></div>` });
+
+        let trainM = null, stopMs = [], routeL = null, doneL = null, mapReady = false;
+
+        function updateMap(gps, det) {
+            const lat = gps.latitude, lon = gps.longitude;
+            if (!trainM) { trainM = L.marker([lat, lon], { icon: trainIcon, zIndexOffset: 9999 }).addTo(map); }
+            else trainM.setLatLng([lat, lon]);
+            if (map.getZoom() < 8) map.setView([lat, lon], 10);
+            else map.panTo([lat, lon]);
+            document.getElementById('map-coord-hdr').textContent = lat.toFixed(4) + '°N  ' + lon.toFixed(4) + '°E';
+
+            if (!mapReady && det?.stops) {
+                stopMs.forEach(m => map.removeLayer(m)); stopMs = [];
+                const allCoords = [], doneCoords = []; let passedAll = true;
+                det.stops.forEach(s => {
+                    if (!s.coordinates) return;
+                    const ll = [s.coordinates.latitude, s.coordinates.longitude]; allCoords.push(ll);
+                    const done = s.progress?.progressPercentage === 100;
+                    if (done) doneCoords.push(ll);
+                    let icon = stopFutI;
+                    if (done) icon = stopDoneI;
+                    else if (passedAll) { icon = stopNextI; passedAll = false; }
+                    const m = L.marker(ll, { icon }).addTo(map);
+                    m.bindTooltip(`<b>${s.label}</b><br>${fmtT(s.realDate)}`, { className: 'ttip', direction: 'top' });
+                    stopMs.push(m);
+                });
+                if (routeL) map.removeLayer(routeL);
+                routeL = L.polyline(allCoords, { color: 'rgba(0,220,200,0.35)', weight: 2.5, dashArray: '10 7' }).addTo(map);
+                if (doneL) map.removeLayer(doneL);
+                if (doneCoords.length > 1) doneL = L.polyline(doneCoords, { color: 'rgba(0,255,153,0.3)', weight: 2 }).addTo(map);
+                mapReady = true;
+            }
+        }
+
+
+
+        /* HELPERS */
+        const fmtT = iso => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        const fmtB = b => b > 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(2) + ' MB' : b > 1e3 ? (b / 1e3).toFixed(1) + ' KB' : b + ' B';
+        const fmtBps = v => v >= 1e6 ? (v / 1e6).toFixed(1) + ' Mbps' : v >= 1e3 ? (v / 1e3).toFixed(0) + ' Kbps' : v + ' bps';
+        const DIRS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
+        const hdDir = d => DIRS[Math.round(d / 22.5) % 16];
+        const msHM = ms => { const m = Math.round(ms / 60000); const h = Math.floor(m / 60); return h ? `${h}h ${m % 60}min` : `${m} min` };
+
+        /* RENDER GPS */
+        function rGPS(d) {
+            document.getElementById('m-speed').textContent = (d.speed * 3.6).toFixed(0);
+            document.getElementById('m-head').textContent = d.heading.toFixed(1);
+            document.getElementById('m-dir').textContent = hdDir(d.heading);
+            document.getElementById('mini-needle').style.transform = `translateX(-50%) translateY(-100%) rotate(${d.heading}deg)`;
+            document.getElementById('compass-needle').style.transform = `translateX(-50%) translateY(-100%) rotate(${d.heading}deg)`;
+        }
+
+        /* RENDER DETAILS */
+        function rDet(d) {
+            document.getElementById('train-num').textContent = 'TER ' + d.number;
+            document.getElementById('t-num').textContent = d.number;
+            document.getElementById('t-id').textContent = d.trainId ?? '---';
+            const first = d.stops[0], last = d.stops[d.stops.length - 1];
+            document.getElementById('t-dep').textContent = first?.label ?? '---';
+            document.getElementById('t-arr').textContent = last?.label ?? '---';
+            if (last?.realDate) {
+                const diff = new Date(last.realDate) - Date.now();
+                const etaTxt = diff > 0 ? msHM(diff) : 'ARRIVÉ';
+                document.getElementById('t-eta').textContent = etaTxt;
+                document.getElementById('m-eta').textContent = etaTxt;
+            }
+            document.getElementById('m-dest').textContent = last?.label ?? '---';
+            document.getElementById('m-dest-small').textContent = first?.label ? '← ' + first.label : '';
+            // stops
+            const list = document.getElementById('stops-list'); list.innerHTML = '';
+            let passedAll = true;
+            d.stops.forEach((s, i) => {
+                const pct = s.progress?.progressPercentage ?? 0, done = pct === 100, active = !done && pct > 0;
+                const isNext = !done && !active && passedAll;
+                if (!done && !active) passedAll = false;
+                const row = document.createElement('div'); row.className = 'stop-row';
+                const line = document.createElement('div'); line.className = 'sline';
+                const dot = document.createElement('div'); dot.className = 'sdot ' + (done ? 'done' : active ? 'active' : isNext ? 'next' : '');
+                line.appendChild(dot);
+                if (i < d.stops.length - 1) { const bar = document.createElement('div'); bar.className = 'sbar ' + (done ? 'done' : ''); line.appendChild(bar); }
+                const info = document.createElement('div'); info.className = 'sinfo';
+                const cls = done ? 'done' : active ? 'active' : isNext ? 'next' : 'future';
+                info.innerHTML = `
+      <div class="sname ${cls}">${s.label}${active ? '<span style="font-size:.6rem;opacity:.8;margin-left:4px">● EN COURS</span>' : ''}</div>
+      <div class="smeta">
+        <span class="stime">${fmtT(s.theoricDate)}</span>
+        ${s.isDelayed ? `<span class="sdel">+${s.delay}min</span>` : done ? '<span class="sok">✓ À l\'heure</span>' : ''}
+        ${s.duration > 0 ? `<span class="sarrêt">Arrêt ${s.duration}min</span>` : ''}
+      </div>
+      ${active ? `<div class="spbar"><div class="spfill" style="width:${pct.toFixed(1)}%"></div></div>` : ''}
+    `;
+                row.appendChild(line); row.appendChild(info); list.appendChild(row);
+            });
+            // services
+            document.getElementById('svc-grid').innerHTML = (d.onboardServices || []).map(s => `<span class="svc">${SVC[s] ?? s}</span>`).join('');
+        }
+
+        /* RENDER CONN */
+        function rConn(d) {
+            document.getElementById('c-stat').textContent = d.active ? '● CONNECTÉ' : '✗ INACTIF';
+            document.getElementById('c-stat').className = 'cval ' + (d.active ? 'ok' : 'err');
+            document.getElementById('c-code').textContent = d.status_code;
+            document.getElementById('c-bw').textContent = fmtBps(d.granted_bandwidth);
+
+            document.getElementById('c-rem').textContent = fmtB(d.remaining_data);
+            document.getElementById('c-cons').textContent = fmtB(d.consumed_data);
+            if (d.next_reset) { const diff = d.next_reset - Date.now(); document.getElementById('c-rst').textContent = diff > 0 ? msHM(diff) : '---'; }
+            const tot = d.remaining_data + d.consumed_data, pct = tot > 0 ? (d.remaining_data / tot * 100).toFixed(1) : 0;
+            document.getElementById('c-gauge').style.width = pct + '%';
+            document.getElementById('c-glbl').textContent = fmtB(d.remaining_data) + ' / ' + fmtB(tot);
+        }
+
+        /* RENDER BAR */
+        function rBar(d) {
+            const el = document.getElementById('bar-attendance');
+            if (!el || d == null) return;
+            // API returns a number 0-100 or a label
+            const val = typeof d.attendance === 'number' ? d.attendance : d;
+            if (typeof val === 'number') {
+                const lbl = val < 30 ? '🟢 Calme' : val < 70 ? '🟡 Modéré' : '🔴 Chargé';
+                el.textContent = lbl + ' (' + val + '%)';
+                el.className = 'cval ' + (val < 30 ? 'ok' : val < 70 ? 'y' : 'err');
+            } else {
+                el.textContent = String(d);
+            }
+        }
+
+        /* RENDER STATS */
+        function rStats(d) {
+            document.getElementById('c-devices').textContent = d.devices + ' appareils';
+            document.getElementById('m-devices').textContent = d.devices + ' appareils connectés';
+            // bars in right panel
+            const renderBars = (containerId, quality) => {
+                const bars = document.getElementById(containerId);
+                if (!bars) return;
+                bars.innerHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    const b = document.createElement('div');
+                    const h = 8 + i * 5;
+                    const active = i <= quality;
+                    const col = quality >= 4 ? 'var(--c2)' : quality >= 2 ? 'var(--cy)' : 'var(--c3)';
+                    b.style.cssText = `width:8px;height:${h}px;border-radius:2px;background:${active ? col : 'rgba(255,255,255,0.08)'};box-shadow:${active ? '0 0 8px ' + col : 'none'};transition:all .4s`;
+                    bars.appendChild(b);
+                }
+            };
+            renderBars('c-quality-bars', d.quality);
+            renderBars('m-sig-bars', d.quality);
+        }
+
+        /* DEMO MODE */
+        function loadDemo() {
+            const now = Date.now();
+            // Fake GPS — entre Paris et Lyon
+            const gd = { latitude: 46.7111, longitude: 4.8222, speed: 75.6, altitude: 298, heading: 157, fix: 9 };
+            // Fake details — TGV 6601 Paris→Lyon
+            const dd = {
+                number: '6601', trainId: '566',
+                stops: [
+                    { label: 'Paris Gare de Lyon', theoricDate: new Date(now - 7200000).toISOString(), realDate: new Date(now - 7200000).toISOString(), isDelayed: false, delay: 0, duration: 0, coordinates: { latitude: 48.8447, longitude: 2.3735 }, progress: { progressPercentage: 100 } },
+                    { label: 'Le Creusot TGV', theoricDate: new Date(now - 2400000).toISOString(), realDate: new Date(now - 2400000).toISOString(), isDelayed: false, delay: 0, duration: 3, coordinates: { latitude: 46.7954, longitude: 4.3797 }, progress: { progressPercentage: 100 } },
+                    { label: 'Mâcon-Loché TGV', theoricDate: new Date(now + 1800000).toISOString(), realDate: new Date(now + 1800000).toISOString(), isDelayed: true, delay: 4, duration: 2, coordinates: { latitude: 46.2956, longitude: 4.8312 }, progress: { progressPercentage: 42 } },
+                    { label: 'Lyon Part-Dieu', theoricDate: new Date(now + 3600000).toISOString(), realDate: new Date(now + 3600000).toISOString(), isDelayed: false, delay: 0, duration: 0, coordinates: { latitude: 45.7607, longitude: 4.8594 }, progress: { progressPercentage: 0 } },
+                ],
+                onboardServices: ['OCEWF', 'OCEPI', 'OCEHP']
+            };
+            // Fake connection status
+            const cd = { active: true, status_code: 200, granted_bandwidth: 18700000, remaining_data: 843000000, consumed_data: 157000000, next_reset: now + 5820000 };
+            // Fake statistics
+            const sd = { quality: 4, devices: 51 };
+
+            rGPS(gd); rDet(dd); rConn(cd); rStats(sd); rBar({ attendance: 38 }); updateMap(gd, dd);
+            document.getElementById('offline-overlay').classList.add('hidden');
+            document.getElementById('hdr-update').textContent = 'MODE DÉMO';
+            const badge = document.getElementById('demo-badge');
+            badge.style.display = 'block';
+            // Animate speed gently for fun
+            let spd = 272;
+            setInterval(() => {
+                spd = Math.max(200, Math.min(320, spd + (Math.random() - 0.5) * 8));
+                document.getElementById('m-speed').textContent = spd.toFixed(0);
+            }, 2000);
+        }
+
+        /* FETCH */
+        let busy = false;
+        async function fetchAll() {
+            if (busy) return; busy = true;
+
+            try {
+                const [g, de, co, st, br] = await Promise.all([fetch(APIS.gps), fetch(APIS.det), fetch(APIS.con), fetch(APIS.stats), fetch(APIS.bar)]);
+                const gd = await g.json(), dd = await de.json(), cd = await co.json(), sd = await st.json();
+                let bd = null; try { bd = await br.json(); } catch (_) { }
+                rGPS(gd); rDet(dd); rConn(cd); rStats(sd); if (bd !== null) rBar(bd); updateMap(gd, dd);
+                document.getElementById('offline-overlay').classList.add('hidden');
+                document.getElementById('hdr-update').textContent = 'LAST SYNC: ' + new Date().toLocaleTimeString('fr-FR');
+            } catch (e) {
+                document.getElementById('offline-overlay').classList.remove('hidden');
+            } finally { busy = false; }
+        }
+
+        /* COUNTDOWN RING */
+        const C = 2 * Math.PI * 13, ring = document.getElementById('rring');
+        ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
+        ring.style.transform = 'rotate(-90deg)'; ring.style.transformOrigin = 'center';
+        let elapsed = 0;
+        setInterval(() => {
+            elapsed++;
+            ring.style.strokeDashoffset = C * (1 - (elapsed % (REFRESH / 1000)) / (REFRESH / 1000));
+            if (elapsed % (REFRESH / 1000) === 0) fetchAll();
+        }, 1000);
+
+        fetchAll();
+    </script>
+    <footer
+        style="text-align:center;padding:18px 0 22px;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:2px;color:rgba(90,143,135,.5);border-top:1px solid rgba(0,220,200,0.07);margin-top:8px">
+        <a href="https://github.com/sattardfr/TchouTchouInfo" target="_blank" rel="noopener"
+            style="color:rgba(0,220,200,.4);text-decoration:none;transition:color .2s"
+            onmouseover="this.style.color='rgba(0,220,200,.9)'" onmouseout="this.style.color='rgba(0,220,200,.4)'">
+            ⌥ github.com/sattardfr/TchouTchouInfo
+        </a>
+    </footer>
+</body>
+
+</html>
